@@ -1,0 +1,1718 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SalesIQ — UI Prototype</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: { DEFAULT: '#2563EB', dark: '#1E40AF', light: '#DBEAFE' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; background: #F9FAFB; }
+  .sidebar { background: #111827; min-height: 100vh; width: 256px; flex-shrink: 0; }
+  .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: #9CA3AF; cursor: pointer; font-size: 14px; transition: all 0.15s; }
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+  .nav-item.active { background: #1E40AF; color: white; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+  .badge-new { background: #DBEAFE; color: #1E40AF; }
+  .badge-discovery { background: #FEF3C7; color: #92400E; }
+  .badge-qualified { background: #D1FAE5; color: #065F46; }
+  .badge-proposal { background: #DBEAFE; color: #1E40AF; }
+  .badge-won { background: #D1FAE5; color: #065F46; font-weight: 700; }
+  .badge-lost { background: #FEE2E2; color: #991B1B; }
+  .badge-negotiation { background: #FEF3C7; color: #92400E; }
+  .badge-demo { background: #EDE9FE; color: #5B21B6; }
+  .badge-high { background: #FEE2E2; color: #991B1B; }
+  .badge-medium { background: #FEF3C7; color: #92400E; }
+  .badge-low { background: #F3F4F6; color: #374151; }
+  .kanban-col { min-width: 280px; background: #F3F4F6; border-radius: 12px; padding: 16px; }
+  .kanban-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 1px solid #E5E7EB; cursor: grab; transition: all 0.15s; }
+  .kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-1px); }
+  .stat-card { background: white; border-radius: 12px; padding: 24px; border: 1px solid #E5E7EB; }
+  .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #6B7280; transition: all 0.15s; }
+  .tab.active { background: #EFF6FF; color: #2563EB; }
+  .tab:hover:not(.active) { color: #374151; background: #F3F4F6; }
+  .step-indicator { display: flex; align-items: center; gap: 0; }
+  .step { display: flex; align-items: center; }
+  .step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; border: 2px solid #D1D5DB; color: #6B7280; background: white; }
+  .step-circle.active { background: #2563EB; color: white; border-color: #2563EB; }
+  .step-circle.done { background: #10B981; color: white; border-color: #10B981; }
+  .step-line { height: 2px; width: 60px; background: #D1D5DB; }
+  .step-line.done { background: #10B981; }
+  .overdue-row { background: #FFF5F5; border-left: 4px solid #EF4444; }
+  .search-chip { background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; padding: 6px 14px; border-radius: 9999px; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .search-chip:hover { background: #DBEAFE; }
+  .result-card { background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px; transition: all 0.15s; }
+  .result-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .score-bar { height: 4px; border-radius: 2px; background: #E5E7EB; margin-top: 8px; }
+  .score-fill { height: 100%; border-radius: 2px; background: #2563EB; }
+  .notification-item { padding: 12px 16px; border-bottom: 1px solid #F3F4F6; cursor: pointer; transition: background 0.1s; }
+  .notification-item:hover { background: #F9FAFB; }
+  input, select, textarea { outline: none; transition: border 0.15s, box-shadow 0.15s; }
+  input:focus, select:focus, textarea:focus { border-color: #2563EB !important; box-shadow: 0 0 0 3px #DBEAFE; }
+  .shimmer { background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #F3F4F6; }
+  ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="flex h-screen overflow-hidden">
+
+<!-- SIDEBAR -->
+<div class="sidebar flex flex-col">
+  <!-- Logo -->
+  <div class="h-16 flex items-center px-5 border-b border-gray-700">
+    <span class="text-white text-xl font-bold">⚡ SalesIQ</span>
+  </div>
+  
+  <!-- Navigation -->
+  <nav class="flex-1 p-3 space-y-1">
+    <div class="nav-item active" onclick="showScreen('dashboard')">
+      <span>📊</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showScreen('leads')">
+      <span>👥</span> Leads
+    </div>
+    <div class="nav-item" onclick="showScreen('accounts')">
+      <span>🏢</span> Accounts
+    </div>
+    <div class="nav-item" onclick="showScreen('meetings')">
+      <span>📅</span> Meetings
+    </div>
+    <div class="nav-item" onclick="showScreen('pipeline')">
+      <span>🎯</span> Pipeline
+    </div>
+    <div class="nav-item" onclick="showScreen('actions')">
+      <span>✅</span> Action Items
+      <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">12</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('ai-search')">
+      <span>🔍</span> AI Search
+    </div>
+    <div class="nav-item" onclick="showScreen('reports')">
+      <span>📄</span> Reports
+    </div>
+  </nav>
+  
+  <!-- Bottom User -->
+  <div class="p-4 border-t border-gray-700 text-gray-300 text-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">JS</div>
+      <div class="flex-1">
+        <div class="text-white text-sm font-medium">John Smith</div>
+        <div class="text-xs">Sales Executive</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Top Bar -->
+  <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+    <div class="flex-1 max-w-md">
+      <input type="text" placeholder="Search leads, accounts, meetings..." 
+        class="w-full h-10 px-4 border border-gray-300 rounded-lg text-sm">
+    </div>
+    <div class="flex items-center gap-4">
+      <!-- Notification Bell -->
+      <div class="relative cursor-pointer" onclick="toggleNotifications()">
+        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+        </svg>
+        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">3</span>
+        
+        <!-- Notification Dropdown -->
+        <div id="notif-dropdown" class="hidden absolute right-0 top-12 w-96 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+          <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+            <span class="font-semibold text-gray-900">Notifications</span>
+            <button class="text-sm text-blue-600">Mark all read</button>
+          </div>
+          <div class="max-h-96 overflow-y-auto">
+            <div class="notification-item">
+              <div class="flex items-start gap-3">
+                <div class="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-900">Overdue: "Send proposal"</div>
+                  <div class="text-xs text-gray-500">TechCorp Lead · 2 hours ago</div>
+                </div>
+              </div>
+            </div>
+            <div class="notification-item">
+              <div class="flex items-start gap-3">
+                <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-900">Lead Assigned: Defence Project</div>
+                  <div class="text-xs text-gray-500">Assigned by Manager · 4 hours ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- User Avatar -->
+      <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold cursor-pointer">
+        JS
+      </div>
+    </div>
+  </header>
+  
+  <!-- Content Area -->
+  <main class="flex-1 overflow-y-auto p-6">
+
+<!-- =================== DASHBOARD SCREEN =================== -->
+<div id="screen-dashboard" class="screen active">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
+    <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700">
+      <option>This Quarter</option>
+      <option>This Month</option>
+      <option>This Year</option>
+    </select>
+  </div>
+  
+  <!-- Stat Cards -->
+  <div class="grid grid-cols-4 gap-5 mb-6">
+    <div class="stat-card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">👥</div>
+        <span class="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">+12% ↑</span>
+      </div>
+      <div class="text-3xl font-bold text-gray-900">247</div>
+      <div class="text-sm text-gray-500 mt-1">Total Leads</div>
+    </div>
+    <div class="stat-card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-xl">💰</div>
+        <span class="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">+5.2% ↑</span>
+      </div>
+      <div class="text-3xl font-bold text-gray-900">₹2.4M</div>
+      <div class="text-sm text-gray-500 mt-1">Pipeline Value</div>
+    </div>
+    <div class="stat-card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-xl">🏆</div>
+        <span class="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">+18% ↑</span>
+      </div>
+      <div class="text-3xl font-bold text-gray-900">₹450K</div>
+      <div class="text-sm text-gray-500 mt-1">Won This Quarter</div>
+    </div>
+    <div class="stat-card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-xl">⚠️</div>
+        <span class="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded-full">12 items</span>
+      </div>
+      <div class="text-3xl font-bold text-red-600">12</div>
+      <div class="text-sm text-gray-500 mt-1">Overdue Actions</div>
+    </div>
+  </div>
+  
+  <!-- Charts Row -->
+  <div class="grid grid-cols-2 gap-5 mb-6">
+    <!-- Pipeline by Stage -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-gray-900">Pipeline by Stage</h2>
+        <select class="text-xs border border-gray-200 rounded px-2 py-1">
+          <option>All Owners</option>
+          <option>My Leads</option>
+        </select>
+      </div>
+      <!-- Simplified Bar Chart -->
+      <div class="space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="text-xs text-gray-500 w-24">Discovery</div>
+          <div class="flex-1 bg-gray-100 rounded h-6 overflow-hidden">
+            <div class="bg-blue-200 h-full rounded" style="width:45%"></div>
+          </div>
+          <div class="text-xs font-medium text-gray-700 w-14 text-right">₹450K</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-xs text-gray-500 w-24">Qualified</div>
+          <div class="flex-1 bg-gray-100 rounded h-6 overflow-hidden">
+            <div class="bg-blue-400 h-full rounded" style="width:75%"></div>
+          </div>
+          <div class="text-xs font-medium text-gray-700 w-14 text-right">₹1.2M</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-xs text-gray-500 w-24">Proposal</div>
+          <div class="flex-1 bg-gray-100 rounded h-6 overflow-hidden">
+            <div class="bg-blue-600 h-full rounded" style="width:55%"></div>
+          </div>
+          <div class="text-xs font-medium text-gray-700 w-14 text-right">₹800K</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-xs text-gray-500 w-24">Negotiation</div>
+          <div class="flex-1 bg-gray-100 rounded h-6 overflow-hidden">
+            <div class="bg-green-500 h-full rounded" style="width:35%"></div>
+          </div>
+          <div class="text-xs font-medium text-gray-700 w-14 text-right">₹500K</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leads by Status Donut -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-900 mb-4">Leads by Status</h2>
+      <div class="flex items-center gap-6">
+        <div class="relative w-32 h-32">
+          <svg viewBox="0 0 36 36" class="w-32 h-32 -rotate-90">
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#E5E7EB" stroke-width="3"/>
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#2563EB" stroke-width="3" stroke-dasharray="25 75" stroke-dashoffset="0"/>
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#10B981" stroke-width="3" stroke-dasharray="20 80" stroke-dashoffset="-25"/>
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#F59E0B" stroke-width="3" stroke-dasharray="15 85" stroke-dashoffset="-45"/>
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#8B5CF6" stroke-width="3" stroke-dasharray="20 80" stroke-dashoffset="-60"/>
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#EF4444" stroke-width="3" stroke-dasharray="20 80" stroke-dashoffset="-80"/>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <div class="text-xl font-bold text-gray-900">247</div>
+            <div class="text-xs text-gray-500">Total</div>
+          </div>
+        </div>
+        <div class="space-y-2 flex-1">
+          <div class="flex items-center gap-2 text-sm"><div class="w-3 h-3 rounded-full bg-blue-600"></div><span class="text-gray-600">Qualified</span><span class="ml-auto font-medium">62</span></div>
+          <div class="flex items-center gap-2 text-sm"><div class="w-3 h-3 rounded-full bg-green-500"></div><span class="text-gray-600">Won</span><span class="ml-auto font-medium">49</span></div>
+          <div class="flex items-center gap-2 text-sm"><div class="w-3 h-3 rounded-full bg-yellow-500"></div><span class="text-gray-600">Proposal</span><span class="ml-auto font-medium">38</span></div>
+          <div class="flex items-center gap-2 text-sm"><div class="w-3 h-3 rounded-full bg-purple-500"></div><span class="text-gray-600">Discovery</span><span class="ml-auto font-medium">50</span></div>
+          <div class="flex items-center gap-2 text-sm"><div class="w-3 h-3 rounded-full bg-red-500"></div><span class="text-gray-600">Lost</span><span class="ml-auto font-medium">48</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Leads Table -->
+  <div class="bg-white rounded-xl border border-gray-200">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="font-semibold text-gray-900">Recent Leads</h2>
+      <button class="text-sm text-blue-600 hover:underline" onclick="showScreen('leads')">View all →</button>
+    </div>
+    <table class="w-full">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="text-xs uppercase text-gray-500 font-medium px-5 py-3 text-left">Lead Name</th>
+          <th class="text-xs uppercase text-gray-500 font-medium px-5 py-3 text-left">Account</th>
+          <th class="text-xs uppercase text-gray-500 font-medium px-5 py-3 text-left">Status</th>
+          <th class="text-xs uppercase text-gray-500 font-medium px-5 py-3 text-left">Value</th>
+          <th class="text-xs uppercase text-gray-500 font-medium px-5 py-3 text-left">Owner</th>
+          <th class="text-xs uppercase text-gray-500 font-medium px-5 py-3 text-left">Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer" onclick="showScreen('lead-detail')">
+          <td class="px-5 py-4 text-sm font-medium text-gray-900">Automotive Vision System</td>
+          <td class="px-5 py-4 text-sm text-gray-600">TechCorp Industries</td>
+          <td class="px-5 py-4"><span class="badge badge-qualified">Qualified</span></td>
+          <td class="px-5 py-4 text-sm font-medium text-gray-900">₹1,20,000</td>
+          <td class="px-5 py-4 text-sm text-gray-600">John Smith</td>
+          <td class="px-5 py-4 text-xs text-gray-400">2 hours ago</td>
+        </tr>
+        <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
+          <td class="px-5 py-4 text-sm font-medium text-gray-900">Defence Robotics Program</td>
+          <td class="px-5 py-4 text-sm text-gray-600">AeroDefence Ltd</td>
+          <td class="px-5 py-4"><span class="badge badge-discovery">Discovery</span></td>
+          <td class="px-5 py-4 text-sm font-medium text-gray-900">₹3,50,000</td>
+          <td class="px-5 py-4 text-sm text-gray-600">Jane Doe</td>
+          <td class="px-5 py-4 text-xs text-gray-400">5 hours ago</td>
+        </tr>
+        <tr class="hover:bg-gray-50 cursor-pointer">
+          <td class="px-5 py-4 text-sm font-medium text-gray-900">Industrial Automation Line</td>
+          <td class="px-5 py-4 text-sm text-gray-600">ManufCo India</td>
+          <td class="px-5 py-4"><span class="badge badge-proposal">Proposal</span></td>
+          <td class="px-5 py-4 text-sm font-medium text-gray-900">₹85,000</td>
+          <td class="px-5 py-4 text-sm text-gray-600">Mike Patel</td>
+          <td class="px-5 py-4 text-xs text-gray-400">Yesterday</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- =================== LEADS LIST SCREEN =================== -->
+<div id="screen-leads" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Leads</h1>
+    <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2" onclick="showScreen('lead-create')">
+      <span>+</span> New Lead
+    </button>
+  </div>
+  
+  <!-- Filters Bar -->
+  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-5 flex items-center gap-3">
+    <div class="flex-1">
+      <input type="text" placeholder="🔍 Search leads..." class="w-full h-10 px-4 border border-gray-300 rounded-lg text-sm">
+    </div>
+    <select class="h-10 px-4 border border-gray-300 rounded-lg text-sm text-gray-700">
+      <option value="">All Statuses</option>
+      <option>New</option>
+      <option>Qualified</option>
+      <option>Proposal</option>
+    </select>
+    <select class="h-10 px-4 border border-gray-300 rounded-lg text-sm text-gray-700">
+      <option value="">All Owners</option>
+      <option>John Smith</option>
+      <option>Jane Doe</option>
+    </select>
+    <select class="h-10 px-4 border border-gray-300 rounded-lg text-sm text-gray-700">
+      <option value="">All Priorities</option>
+      <option>High</option>
+      <option>Medium</option>
+      <option>Low</option>
+    </select>
+    <button class="text-sm text-gray-600 hover:text-gray-900 px-4">Clear</button>
+  </div>
+  
+  <!-- View Toggle -->
+  <div class="flex items-center gap-2 mb-4">
+    <button class="tab active">📋 Table</button>
+    <button class="tab" onclick="showScreen('pipeline')">📊 Kanban</button>
+  </div>
+  
+  <!-- Table View -->
+  <div class="bg-white rounded-xl border border-gray-200">
+    <table class="w-full">
+      <thead>
+        <tr class="border-b-2 border-gray-200 bg-gray-50">
+          <th class="px-4 py-3 w-10"><input type="checkbox" class="rounded border-gray-300"></th>
+          <th class="text-xs uppercase text-gray-500 font-semibold px-4 py-3 text-left">Lead Name</th>
+          <th class="text-xs uppercase text-gray-500 font-semibold px-4 py-3 text-left">Account</th>
+          <th class="text-xs uppercase text-gray-500 font-semibold px-4 py-3 text-left">Status</th>
+          <th class="text-xs uppercase text-gray-500 font-semibold px-4 py-3 text-left">Value</th>
+          <th class="text-xs uppercase text-gray-500 font-semibold px-4 py-3 text-left">Owner</th>
+          <th class="text-xs uppercase text-gray-500 font-semibold px-4 py-3 text-left w-12">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="showScreen('lead-detail')">
+          <td class="px-4 py-4"><input type="checkbox" class="rounded border-gray-300"></td>
+          <td class="px-4 py-4 text-sm font-semibold text-gray-900">Automotive Vision System</td>
+          <td class="px-4 py-4 text-sm text-gray-600">TechCorp Industries</td>
+          <td class="px-4 py-4"><span class="badge badge-qualified">Qualified</span></td>
+          <td class="px-4 py-4 text-sm font-medium text-gray-900 text-right">₹1,20,000</td>
+          <td class="px-4 py-4 text-sm text-gray-600 flex items-center gap-2">
+            <div class="w-6 h-6 bg-blue-500 rounded-full text-white text-xs flex items-center justify-center">JS</div>
+            John Smith
+          </td>
+          <td class="px-4 py-4 text-center cursor-pointer text-gray-500 hover:text-gray-700">⋮</td>
+        </tr>
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+          <td class="px-4 py-4"><input type="checkbox" class="rounded border-gray-300"></td>
+          <td class="px-4 py-4 text-sm font-semibold text-gray-900">Defence Robotics Program</td>
+          <td class="px-4 py-4 text-sm text-gray-600">AeroDefence Ltd</td>
+          <td class="px-4 py-4"><span class="badge badge-discovery">Discovery</span></td>
+          <td class="px-4 py-4 text-sm font-medium text-gray-900 text-right">₹3,50,000</td>
+          <td class="px-4 py-4 text-sm text-gray-600 flex items-center gap-2">
+            <div class="w-6 h-6 bg-purple-500 rounded-full text-white text-xs flex items-center justify-center">JD</div>
+            Jane Doe
+          </td>
+          <td class="px-4 py-4 text-center cursor-pointer text-gray-500 hover:text-gray-700">⋮</td>
+        </tr>
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+          <td class="px-4 py-4"><input type="checkbox" class="rounded border-gray-300"></td>
+          <td class="px-4 py-4 text-sm font-semibold text-gray-900">Industrial Automation Line</td>
+          <td class="px-4 py-4 text-sm text-gray-600">ManufCo India</td>
+          <td class="px-4 py-4"><span class="badge badge-proposal">Proposal</span></td>
+          <td class="px-4 py-4 text-sm font-medium text-gray-900 text-right">₹85,000</td>
+          <td class="px-4 py-4 text-sm text-gray-600 flex items-center gap-2">
+            <div class="w-6 h-6 bg-green-500 rounded-full text-white text-xs flex items-center justify-center">MP</div>
+            Mike Patel
+          </td>
+          <td class="px-4 py-4 text-center cursor-pointer text-gray-500 hover:text-gray-700">⋮</td>
+        </tr>
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+          <td class="px-4 py-4"><input type="checkbox" class="rounded border-gray-300"></td>
+          <td class="px-4 py-4 text-sm font-semibold text-gray-900">Smart Factory Upgrade</td>
+          <td class="px-4 py-4 text-sm text-gray-600">IndusTech Corp</td>
+          <td class="px-4 py-4"><span class="badge badge-new">New</span></td>
+          <td class="px-4 py-4 text-sm font-medium text-gray-900 text-right">₹60,000</td>
+          <td class="px-4 py-4 text-sm text-gray-600 flex items-center gap-2">
+            <div class="w-6 h-6 bg-yellow-500 rounded-full text-white text-xs flex items-center justify-center">SS</div>
+            Sara Singh
+          </td>
+          <td class="px-4 py-4 text-center cursor-pointer text-gray-500 hover:text-gray-700">⋮</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <!-- Pagination -->
+    <div class="p-4 border-t border-gray-100 flex items-center justify-between">
+      <div class="text-sm text-gray-600">Showing 1-50 of 247 leads</div>
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">← Previous</button>
+        <button class="px-3 py-1.5 border border-blue-600 bg-blue-600 text-white rounded text-sm">1</button>
+        <button class="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">2</button>
+        <button class="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">3</button>
+        <span class="px-2 text-gray-500">...</span>
+        <button class="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">12</button>
+        <button class="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== LEAD DETAIL SCREEN =================== -->
+<div id="screen-lead-detail" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <button onclick="showScreen('leads')" class="text-blue-600 hover:underline text-sm mb-2">← Back to Leads</button>
+      <h1 class="text-2xl font-semibold text-gray-900">Automotive Vision System</h1>
+      <div class="flex items-center gap-4 mt-2 text-sm text-gray-600">
+        <span class="badge badge-high">High Priority</span>
+        <span>Owner: John Smith</span>
+        <span>Created: Nov 5, 2026</span>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button class="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Edit</button>
+      <button class="border border-red-300 text-red-600 px-4 py-2 rounded-lg text-sm hover:bg-red-50">Delete</button>
+    </div>
+  </div>
+  
+  <!-- Status Pipeline -->
+  <div class="bg-white rounded-lg border border-gray-200 p-5 mb-5">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-medium text-gray-700">Lead Status</h3>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">Move to Qualified →</button>
+    </div>
+    <div class="flex items-center gap-0">
+      <div class="flex items-center"><div class="step-circle done">✓</div></div><div class="step-line done"></div>
+      <div class="flex items-center"><div class="step-circle done">✓</div></div><div class="step-line done"></div>
+      <div class="flex items-center"><div class="step-circle active">3</div></div><div class="step-line"></div>
+      <div class="flex items-center"><div class="step-circle">4</div></div><div class="step-line"></div>
+      <div class="flex items-center"><div class="step-circle">5</div></div>
+    </div>
+    <div class="flex items-center justify-between mt-2 text-xs text-gray-600">
+      <span>New</span><span>Contacted</span><span class="font-medium text-blue-600">Discovery</span><span>Qualified</span><span>Proposal</span>
+    </div>
+  </div>
+  
+  <!-- Quick Info -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="text-sm text-gray-500 mb-1">Account</div>
+      <div class="font-semibold text-gray-900">TechCorp Industries</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="text-sm text-gray-500 mb-1">Estimated Value</div>
+      <div class="font-semibold text-gray-900">₹1,20,000</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="text-sm text-gray-500 mb-1">Expected Close</div>
+      <div class="font-semibold text-gray-900">Dec 31, 2026</div>
+    </div>
+  </div>
+  
+  <!-- Tabs -->
+  <div class="flex items-center gap-2 mb-4 border-b border-gray-200">
+    <button class="tab active">Overview</button>
+    <button class="tab">Meetings</button>
+    <button class="tab">Contacts</button>
+    <button class="tab">Opportunities</button>
+    <button class="tab">Competitors</button>
+    <button class="tab">Action Items</button>
+    <button class="tab">AI Insights</button>
+  </div>
+  
+  <!-- Tab Content: Overview -->
+  <div class="grid grid-cols-3 gap-6">
+    <div class="col-span-2 space-y-5">
+      <!-- Lead Details -->
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Lead Details</h3>
+        <div class="space-y-3 text-sm">
+          <div class="flex"><span class="text-gray-500 w-32">Lead Source:</span><span class="font-medium text-gray-900">Referral</span></div>
+          <div class="flex"><span class="text-gray-500 w-32">Industry:</span><span class="font-medium text-gray-900">Automotive Manufacturing</span></div>
+          <div class="flex"><span class="text-gray-500 w-32">Region:</span><span class="font-medium text-gray-900">South India</span></div>
+          <div class="flex"><span class="text-gray-500 w-32">Contact:</span><span class="font-medium text-gray-900">Rajesh Kumar</span></div>
+          <div class="flex"><span class="text-gray-500 w-32">Email:</span><span class="text-blue-600">r.kumar@techcorp.in</span></div>
+          <div class="flex"><span class="text-gray-500 w-32">Mobile:</span><span class="font-medium text-gray-900">+91 9876543210</span></div>
+        </div>
+      </div>
+      
+      <!-- Activity Timeline -->
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <div class="space-y-4">
+          <div class="flex gap-3">
+            <div class="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-900">Status changed to Discovery</div>
+              <div class="text-xs text-gray-500 mt-1">2 days ago · by John Smith</div>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="w-2 h-2 bg-green-600 rounded-full mt-1.5"></div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-900">Meeting scheduled</div>
+              <div class="text-xs text-gray-500 mt-1">3 days ago · by John Smith</div>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="w-2 h-2 bg-gray-400 rounded-full mt-1.5"></div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-900">Lead created</div>
+              <div class="text-xs text-gray-500 mt-1">1 week ago · by John Smith</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="space-y-5">
+      <!-- Deal Summary -->
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Deal Summary</h3>
+        <div class="space-y-3 text-sm">
+          <div><span class="text-gray-500">Estimated Value:</span><div class="font-medium text-gray-900 mt-1">₹1,20,000</div></div>
+          <div><span class="text-gray-500">Expected Close:</span><div class="font-medium text-gray-900 mt-1">Dec 31, 2026</div></div>
+          <div><span class="text-gray-500">Budget Confirmed:</span><div class="text-red-600 mt-1">✗ No</div></div>
+          <div><span class="text-gray-500">Decision Maker:</span><div class="text-red-600 mt-1">✗ Not Met</div></div>
+        </div>
+      </div>
+      
+      <!-- Open Action Items -->
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-gray-900">Open Actions</h3>
+          <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">3</span>
+        </div>
+        <div class="space-y-3">
+          <div class="text-sm">
+            <div class="font-medium text-gray-900 flex items-center gap-2">
+              Send proposal draft <span class="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded">Overdue</span>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">Was due: Nov 10</div>
+          </div>
+          <div class="text-sm">
+            <div class="font-medium text-gray-900">Technical demo setup</div>
+            <div class="text-xs text-gray-500 mt-1">Due Friday</div>
+          </div>
+          <div class="text-sm">
+            <div class="font-medium text-gray-900">Follow up on pricing</div>
+            <div class="text-xs text-gray-500 mt-1">In Progress</div>
+          </div>
+        </div>
+        <button class="text-sm text-blue-600 hover:underline mt-3">View All →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== PIPELINE/KANBAN SCREEN =================== -->
+<div id="screen-pipeline" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Pipeline</h1>
+    <div class="flex gap-2">
+      <button class="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Forecast View</button>
+      <button class="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Settings</button>
+    </div>
+  </div>
+  
+  <!-- Stage Summary -->
+  <div class="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+    <div class="flex items-center justify-between text-sm">
+      <div><span class="font-medium text-gray-900">Discovery:</span> <span class="text-gray-600">8 deals (₹4,50,000)</span></div>
+      <div><span class="font-medium text-gray-900">Qualified:</span> <span class="text-gray-600">12 deals (₹12,00,000)</span></div>
+      <div><span class="font-medium text-gray-900">Proposal:</span> <span class="text-gray-600">5 deals (₹8,00,000)</span></div>
+      <div><span class="font-medium text-gray-900">Negotiation:</span> <span class="text-gray-600">4 deals (₹5,00,000)</span></div>
+    </div>
+  </div>
+  
+  <!-- Kanban Board -->
+  <div class="flex gap-4 overflow-x-auto pb-4">
+    <!-- Discovery Column -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900 text-sm">Discovery</h3>
+        <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">8</span>
+      </div>
+      
+      <div class="kanban-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="font-medium text-sm text-gray-900">Automotive Vision</div>
+          <div class="text-gray-400 cursor-pointer">⋮</div>
+        </div>
+        <div class="text-xs text-gray-500 mb-3">TechCorp Industries</div>
+        <div class="flex items-center gap-2 text-xs mb-2">
+          <span class="font-semibold text-blue-600">₹1,20,000</span>
+          <span class="text-gray-500">│</span>
+          <span class="text-gray-600">30%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-gray-600">
+          <div class="flex items-center gap-1">
+            <div class="w-5 h-5 bg-blue-500 rounded-full text-white text-xs flex items-center justify-center">JS</div>
+            John
+          </div>
+          <span class="text-gray-400">Dec 2026</span>
+        </div>
+      </div>
+      
+      <div class="kanban-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="font-medium text-sm text-gray-900">Smart Factory</div>
+          <div class="text-gray-400 cursor-pointer">⋮</div>
+        </div>
+        <div class="text-xs text-gray-500 mb-3">IndusTech Corp</div>
+        <div class="flex items-center gap-2 text-xs mb-2">
+          <span class="font-semibold text-blue-600">₹80,000</span>
+          <span class="text-gray-500">│</span>
+          <span class="text-gray-600">25%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-gray-600">
+          <div class="flex items-center gap-1">
+            <div class="w-5 h-5 bg-yellow-500 rounded-full text-white text-xs flex items-center justify-center">SS</div>
+            Sara
+          </div>
+          <span class="text-gray-400">Jan 2027</span>
+        </div>
+      </div>
+      
+      <button class="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2">+ Add Opportunity</button>
+    </div>
+    
+    <!-- Qualified Column -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900 text-sm">Qualified</h3>
+        <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">12</span>
+      </div>
+      
+      <div class="kanban-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="font-medium text-sm text-gray-900">Defence Robotics</div>
+          <div class="text-gray-400 cursor-pointer">⋮</div>
+        </div>
+        <div class="text-xs text-gray-500 mb-3">AeroDefence Ltd</div>
+        <div class="flex items-center gap-2 text-xs mb-2">
+          <span class="font-semibold text-blue-600">₹3,50,000</span>
+          <span class="text-gray-500">│</span>
+          <span class="text-gray-600">50%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center gap-1">
+            <div class="w-5 h-5 bg-purple-500 rounded-full text-white text-xs flex items-center justify-center">JD</div>
+            Jane
+          </div>
+          <span class="text-gray-400">Feb 2027</span>
+        </div>
+        <div class="flex gap-1 mt-3">
+          <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ Budget OK</span>
+        </div>
+      </div>
+      
+      <div class="kanban-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="font-medium text-sm text-gray-900">QA Automation</div>
+          <div class="text-gray-400 cursor-pointer">⋮</div>
+        </div>
+        <div class="text-xs text-gray-500 mb-3">TestCo India</div>
+        <div class="flex items-center gap-2 text-xs mb-2">
+          <span class="font-semibold text-blue-600">₹95,000</span>
+          <span class="text-gray-500">│</span>
+          <span class="text-gray-600">45%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-gray-600">
+          <div class="flex items-center gap-1">
+            <div class="w-5 h-5 bg-green-500 rounded-full text-white text-xs flex items-center justify-center">MP</div>
+            Mike
+          </div>
+          <span class="text-gray-400">Mar 2027</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Proposal Column -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900 text-sm">Proposal</h3>
+        <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">5</span>
+      </div>
+      
+      <div class="kanban-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="font-medium text-sm text-gray-900">Automotive Plant</div>
+          <div class="text-gray-400 cursor-pointer">⋮</div>
+        </div>
+        <div class="text-xs text-gray-500 mb-3">AutoPlant Co</div>
+        <div class="flex items-center gap-2 text-xs mb-2">
+          <span class="font-semibold text-blue-600">₹2,00,000</span>
+          <span class="text-gray-500">│</span>
+          <span class="text-gray-600">75%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-gray-600">
+          <div class="flex items-center gap-1">
+            <div class="w-5 h-5 bg-blue-500 rounded-full text-white text-xs flex items-center justify-center">JS</div>
+            John
+          </div>
+          <span class="text-gray-400">Nov 2026</span>
+        </div>
+        <div class="flex gap-1 mt-3">
+          <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ DM Met</span>
+          <span class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">⚠ POC Req</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Negotiation Column -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900 text-sm">Negotiation</h3>
+        <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">4</span>
+      </div>
+      
+      <div class="kanban-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="font-medium text-sm text-gray-900">Industrial Line 4.0</div>
+          <div class="text-gray-400 cursor-pointer">⋮</div>
+        </div>
+        <div class="text-xs text-gray-500 mb-3">ManufCo India</div>
+        <div class="flex items-center gap-2 text-xs mb-2">
+          <span class="font-semibold text-green-600">₹1,50,000</span>
+          <span class="text-gray-500">│</span>
+          <span class="text-gray-600">85%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-gray-600">
+          <div class="flex items-center gap-1">
+            <div class="w-5 h-5 bg-green-500 rounded-full text-white text-xs flex items-center justify-center">MP</div>
+            Mike
+          </div>
+          <span class="text-gray-400">Dec 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== ACTION ITEMS SCREEN =================== -->
+<div id="screen-actions" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Action Items</h1>
+    <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium">+ New Action</button>
+  </div>
+  
+  <!-- Filter Pills -->
+  <div class="flex items-center gap-2 mb-6">
+    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">My Items</button>
+    <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">All Items</button>
+    <button class="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
+      <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+      Overdue (12)
+    </button>
+  </div>
+  
+  <!-- OVERDUE Section -->
+  <div class="mb-6">
+    <div class="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-3">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold text-red-900 flex items-center gap-2">
+          🔴 OVERDUE (3)
+        </h2>
+      </div>
+      
+      <div class="space-y-3">
+        <div class="bg-white rounded-lg p-4 border border-red-200">
+          <div class="flex items-start gap-3">
+            <input type="checkbox" class="mt-1 rounded border-gray-300">
+            <div class="flex-1">
+              <div class="font-medium text-gray-900 mb-1">Send proposal to TechCorp</div>
+              <div class="flex items-center gap-3 text-sm text-gray-600">
+                <span class="flex items-center gap-1">👤 John Smith</span>
+                <span>│</span>
+                <span class="flex items-center gap-1">🔗 TechCorp Lead</span>
+                <span>│</span>
+                <span class="badge badge-high">High Priority</span>
+                <span>│</span>
+                <span class="text-red-600 font-medium">Was due: Nov 10</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg p-4 border border-red-200">
+          <div class="flex items-start gap-3">
+            <input type="checkbox" class="mt-1 rounded border-gray-300">
+            <div class="flex-1">
+              <div class="font-medium text-gray-900 mb-1">Technical spec review</div>
+              <div class="flex items-center gap-3 text-sm text-gray-600">
+                <span class="flex items-center gap-1">👤 Jane Doe</span>
+                <span>│</span>
+                <span class="flex items-center gap-1">🔗 AeroDefence</span>
+                <span>│</span>
+                <span class="badge badge-high">High Priority</span>
+                <span>│</span>
+                <span class="text-red-600 font-medium">Was due: Nov 12</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- DUE TODAY -->
+  <div class="bg-white rounded-xl border border-gray-200 mb-6">
+    <div class="p-4 border-b border-gray-100">
+      <h2 class="font-semibold text-gray-900">📅 DUE TODAY (2)</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
+        <input type="checkbox" class="mt-1 rounded border-gray-300">
+        <div class="flex-1">
+          <div class="font-medium text-gray-900 mb-1">Follow up on demo scheduling</div>
+          <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span>👤 John Smith</span>
+            <span>│</span>
+            <span>📅 Today</span>
+            <span>│</span>
+            <span class="badge badge-medium">Medium</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
+        <input type="checkbox" class="mt-1 rounded border-gray-300">
+        <div class="flex-1">
+          <div class="font-medium text-gray-900 mb-1">Send updated pricing sheet</div>
+          <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span>👤 Mike Patel</span>
+            <span>│</span>
+            <span>📅 Today</span>
+            <span>│</span>
+            <span class="badge badge-low">Low</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- UPCOMING -->
+  <div class="bg-white rounded-xl border border-gray-200">
+    <div class="p-4 border-b border-gray-100">
+      <h2 class="font-semibold text-gray-900">UPCOMING (8)</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
+        <input type="checkbox" class="mt-1 rounded border-gray-300">
+        <div class="flex-1">
+          <div class="font-medium text-gray-900 mb-1">Prepare ROI analysis</div>
+          <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span>👤 John Smith</span>
+            <span>│</span>
+            <span>📅 Nov 20</span>
+            <span>│</span>
+            <span class="badge badge-high">High</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
+        <input type="checkbox" class="mt-1 rounded border-gray-300">
+        <div class="flex-1">
+          <div class="font-medium text-gray-900 mb-1">Internal POC review meeting</div>
+          <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span>👤 Jane Doe</span>
+            <span>│</span>
+            <span>📅 Nov 22</span>
+            <span>│</span>
+            <span class="badge badge-medium">Medium</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== AI SEARCH SCREEN =================== -->
+<div id="screen-ai-search" class="screen">
+  <div class="mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900 mb-2">AI Search</h1>
+    <p class="text-gray-600">Ask anything about your leads, meetings, or clients</p>
+  </div>
+  
+  <!-- Search Box -->
+  <div class="bg-white rounded-xl border-2 border-blue-200 p-4 mb-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <span class="text-xl">🔍</span>
+      <input type="text" placeholder="e.g., Show leads with pricing concerns and POC requests..." 
+        class="flex-1 text-base outline-none border-none">
+      <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium">Search</button>
+    </div>
+  </div>
+  
+  <!-- Suggested Queries -->
+  <div class="mb-8">
+    <div class="text-sm text-gray-600 mb-3">Try these searches:</div>
+    <div class="flex flex-wrap gap-2">
+      <span class="search-chip">Show overdue leads</span>
+      <span class="search-chip">Pricing concerns</span>
+      <span class="search-chip">Unmet decision makers</span>
+      <span class="search-chip">High value stalled deals</span>
+      <span class="search-chip">Recent defence meetings</span>
+    </div>
+  </div>
+  
+  <!-- Search Results -->
+  <div>
+    <div class="mb-4 text-sm text-gray-600">12 results found for <span class="font-medium text-gray-900">"pricing concerns and POC request"</span></div>
+    
+    <div class="space-y-4">
+      <div class="result-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📋</span>
+            <span class="text-sm font-semibold text-gray-700">Meeting Report</span>
+          </div>
+          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">Score: 0.9423</span>
+        </div>
+        <div class="text-sm font-medium text-gray-900 mb-1">TechCorp — Nov 10, 2026</div>
+        <div class="text-sm text-gray-600 mb-3 leading-relaxed">
+          "...client expressed concern about pricing compared to VisionTech. Requested POC at plant to validate ROI calculations before making final decision..."
+        </div>
+        <button class="text-sm text-blue-600 hover:underline">View Meeting →</button>
+        <div class="score-bar"><div class="score-fill" style="width:94%"></div></div>
+      </div>
+      
+      <div class="result-card">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">👥</span>
+            <span class="text-sm font-semibold text-gray-700">Lead Note</span>
+          </div>
+          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">Score: 0.8891</span>
+        </div>
+        <div class="text-sm font-medium text-gray-900 mb-1">AeroDefence Contract — Discovery Stage</div>
+        <div class="text-sm text-gray-600 mb-3 leading-relaxed">
+          "...pricing was flagged as a concern in internal notes. Budget not yet confirmed, POC approval pending from leadership team..."
+        </div>
+        <button class="text-sm text-blue-600 hover:underline">View Lead →</button>
+        <div class="score-bar"><div class="score-fill" style="width:89%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== ACCOUNTS SCREEN =================== -->
+<div id="screen-accounts" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Accounts</h1>
+    <button onclick="showAccountModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
+      <span>+</span> New Account
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-5 flex items-center gap-3">
+    <div class="flex-1">
+      <input type="text" placeholder="🔍 Search accounts..." class="w-full h-10 px-4 border border-gray-300 rounded-lg text-sm">
+    </div>
+    <select class="h-10 px-4 border border-gray-300 rounded-lg text-sm text-gray-700">
+      <option>All Industries</option>
+      <option>Automotive</option>
+      <option>Defence</option>
+      <option>Manufacturing</option>
+    </select>
+    <select class="h-10 px-4 border border-gray-300 rounded-lg text-sm text-gray-700">
+      <option>All Statuses</option>
+      <option>Active</option>
+      <option>Prospect</option>
+      <option>Inactive</option>
+    </select>
+    <button class="text-sm text-gray-500 hover:text-gray-800 px-2">Clear</button>
+  </div>
+
+  <!-- Accounts Grid -->
+  <div class="grid grid-cols-3 gap-5">
+
+    <!-- Account Card 1 -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" onclick="showScreen('account-detail')">
+      <div class="flex items-start justify-between mb-3">
+        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 font-bold text-lg">TC</div>
+        <span class="badge" style="background:#D1FAE5;color:#065F46;">Active</span>
+      </div>
+      <h3 class="font-semibold text-gray-900 mb-1">TechCorp Industries</h3>
+      <p class="text-sm text-gray-500 mb-3">Automotive Manufacturing · Pune, India</p>
+      <div class="text-xs text-gray-400 mb-3">🌐 www.techcorp.in</div>
+      <div class="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-500">
+        <span>4 Leads</span>
+        <span>2 Active Opps</span>
+        <span>₹3,20,000</span>
+      </div>
+    </div>
+
+    <!-- Account Card 2 -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+      <div class="flex items-start justify-between mb-3">
+        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700 font-bold text-lg">AD</div>
+        <span class="badge" style="background:#D1FAE5;color:#065F46;">Active</span>
+      </div>
+      <h3 class="font-semibold text-gray-900 mb-1">AeroDefence Ltd</h3>
+      <p class="text-sm text-gray-500 mb-3">Defence & Aerospace · Bengaluru, India</p>
+      <div class="text-xs text-gray-400 mb-3">🌐 www.aerodefence.in</div>
+      <div class="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-500">
+        <span>2 Leads</span>
+        <span>1 Active Opp</span>
+        <span>₹3,50,000</span>
+      </div>
+    </div>
+
+    <!-- Account Card 3 -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+      <div class="flex items-start justify-between mb-3">
+        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-700 font-bold text-lg">MC</div>
+        <span class="badge" style="background:#FEF3C7;color:#92400E;">Prospect</span>
+      </div>
+      <h3 class="font-semibold text-gray-900 mb-1">ManufCo India</h3>
+      <p class="text-sm text-gray-500 mb-3">Industrial Manufacturing · Chennai, India</p>
+      <div class="text-xs text-gray-400 mb-3">🌐 www.manufco.in</div>
+      <div class="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-500">
+        <span>3 Leads</span>
+        <span>1 Active Opp</span>
+        <span>₹85,000</span>
+      </div>
+    </div>
+
+    <!-- Account Card 4 -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+      <div class="flex items-start justify-between mb-3">
+        <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-700 font-bold text-lg">IT</div>
+        <span class="badge" style="background:#D1FAE5;color:#065F46;">Active</span>
+      </div>
+      <h3 class="font-semibold text-gray-900 mb-1">IndusTech Corp</h3>
+      <p class="text-sm text-gray-500 mb-3">Smart Factory · Hyderabad, India</p>
+      <div class="text-xs text-gray-400 mb-3">🌐 www.industech.in</div>
+      <div class="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-500">
+        <span>2 Leads</span>
+        <span>0 Active Opps</span>
+        <span>₹60,000</span>
+      </div>
+    </div>
+
+    <!-- Account Card 5 -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+      <div class="flex items-start justify-between mb-3">
+        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-700 font-bold text-lg">AP</div>
+        <span class="badge" style="background:#F3F4F6;color:#374151;">Inactive</span>
+      </div>
+      <h3 class="font-semibold text-gray-900 mb-1">AutoPlant Co</h3>
+      <p class="text-sm text-gray-500 mb-3">Automotive Assembly · Mumbai, India</p>
+      <div class="text-xs text-gray-400 mb-3">🌐 www.autoplant.in</div>
+      <div class="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-500">
+        <span>1 Lead</span>
+        <span>1 Active Opp</span>
+        <span>₹2,00,000</span>
+      </div>
+    </div>
+
+    <!-- New Account Card (CTA) -->
+    <div onclick="showAccountModal()" class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all min-h-48">
+      <div class="w-12 h-12 bg-white rounded-xl border border-gray-200 flex items-center justify-center text-2xl mb-3">+</div>
+      <div class="text-sm font-medium text-gray-600">Add New Account</div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== ACCOUNT DETAIL SCREEN =================== -->
+<div id="screen-account-detail" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <button onclick="showScreen('accounts')" class="text-blue-600 hover:underline text-sm mb-2 block">← Back to Accounts</button>
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 font-bold text-xl">TC</div>
+        <div>
+          <h1 class="text-2xl font-semibold text-gray-900">TechCorp Industries</h1>
+          <div class="flex items-center gap-3 text-sm text-gray-500 mt-1">
+            <span>Automotive Manufacturing</span>
+            <span>·</span>
+            <span>Pune, India</span>
+            <span>·</span>
+            <span class="badge" style="background:#D1FAE5;color:#065F46;">Active Customer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Edit Account</button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-gray-900">4</div>
+      <div class="text-xs text-gray-500 mt-1">Total Leads</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-blue-600">2</div>
+      <div class="text-xs text-gray-500 mt-1">Active Opportunities</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-green-600">₹3.2L</div>
+      <div class="text-xs text-gray-500 mt-1">Total Pipeline</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-sm font-semibold text-gray-900">Nov 15, 2026</div>
+      <div class="text-xs text-gray-500 mt-1">Last Meeting</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex items-center gap-2 mb-5 border-b border-gray-200 pb-2">
+    <button class="tab active" onclick="switchAccountTab(this,'acc-overview')">Overview</button>
+    <button class="tab" onclick="switchAccountTab(this,'acc-contacts')">Contacts</button>
+    <button class="tab" onclick="switchAccountTab(this,'acc-leads')">Leads</button>
+    <button class="tab" onclick="switchAccountTab(this,'acc-meetings')">Meetings</button>
+  </div>
+
+  <!-- Overview Tab -->
+  <div id="acc-overview" class="acc-tab-content">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Account Information</h3>
+        <div class="space-y-3 text-sm">
+          <div class="flex"><span class="text-gray-500 w-36">Website:</span><a href="#" class="text-blue-600">www.techcorp.in</a></div>
+          <div class="flex"><span class="text-gray-500 w-36">Industry:</span><span class="text-gray-900">Automotive Manufacturing</span></div>
+          <div class="flex"><span class="text-gray-500 w-36">Location:</span><span class="text-gray-900">Pune, Maharashtra</span></div>
+          <div class="flex"><span class="text-gray-500 w-36">Account Status:</span><span class="text-gray-900">Existing Customer</span></div>
+          <div class="flex"><span class="text-gray-500 w-36">Account Owner:</span><span class="text-gray-900">John Smith</span></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Relationship Notes</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">Long-term customer since 2022. Key decision maker is Rajesh Kumar (Plant Manager). Currently evaluating vision inspection upgrade for paint shop. Budget cycle is January–March each year.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contacts Tab -->
+  <div id="acc-contacts" class="acc-tab-content hidden">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-gray-900">Contacts (3)</h3>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">+ Add Contact</button>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <table class="w-full">
+        <thead>
+          <tr class="bg-gray-50 border-b border-gray-200">
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Name</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Designation</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Email</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Phone</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Role in Decision</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-gray-50 hover:bg-gray-50">
+            <td class="px-5 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-blue-500 rounded-full text-white text-xs flex items-center justify-center font-semibold">RK</div>
+                <div>
+                  <div class="text-sm font-semibold text-gray-900">Rajesh Kumar</div>
+                  <div class="text-xs text-blue-500">★ Primary</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-5 py-4 text-sm text-gray-700">Plant Manager</td>
+            <td class="px-5 py-4 text-sm text-blue-600">r.kumar@techcorp.in</td>
+            <td class="px-5 py-4 text-sm text-gray-700">+91 9876543210</td>
+            <td class="px-5 py-4"><span class="badge" style="background:#FEE2E2;color:#991B1B;">Decision Maker</span></td>
+            <td class="px-5 py-4"><button class="text-xs text-gray-500 hover:text-blue-600">Edit</button></td>
+          </tr>
+          <tr class="border-b border-gray-50 hover:bg-gray-50">
+            <td class="px-5 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-purple-500 rounded-full text-white text-xs flex items-center justify-center font-semibold">PS</div>
+                <span class="text-sm font-semibold text-gray-900">Priya Sharma</span>
+              </div>
+            </td>
+            <td class="px-5 py-4 text-sm text-gray-700">Quality Head</td>
+            <td class="px-5 py-4 text-sm text-blue-600">p.sharma@techcorp.in</td>
+            <td class="px-5 py-4 text-sm text-gray-700">+91 9876543211</td>
+            <td class="px-5 py-4"><span class="badge" style="background:#FEF3C7;color:#92400E;">Influencer</span></td>
+            <td class="px-5 py-4"><button class="text-xs text-gray-500 hover:text-blue-600">Edit</button></td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-5 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-green-500 rounded-full text-white text-xs flex items-center justify-center font-semibold">AV</div>
+                <span class="text-sm font-semibold text-gray-900">Anil Verma</span>
+              </div>
+            </td>
+            <td class="px-5 py-4 text-sm text-gray-700">Operations Lead</td>
+            <td class="px-5 py-4 text-sm text-blue-600">a.verma@techcorp.in</td>
+            <td class="px-5 py-4 text-sm text-gray-700">+91 9876543212</td>
+            <td class="px-5 py-4"><span class="badge badge-low">User</span></td>
+            <td class="px-5 py-4"><button class="text-xs text-gray-500 hover:text-blue-600">Edit</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Leads Tab -->
+  <div id="acc-leads" class="acc-tab-content hidden">
+    <div class="bg-white rounded-xl border border-gray-200">
+      <table class="w-full">
+        <thead>
+          <tr class="bg-gray-50 border-b border-gray-200">
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Lead Name</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Status</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Value</th>
+            <th class="text-xs uppercase text-gray-500 font-semibold px-5 py-3 text-left">Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
+            <td class="px-5 py-4 text-sm font-semibold text-gray-900">Automotive Vision System</td>
+            <td class="px-5 py-4"><span class="badge badge-qualified">Qualified</span></td>
+            <td class="px-5 py-4 text-sm font-medium text-gray-900">₹1,20,000</td>
+            <td class="px-5 py-4 text-sm text-gray-600">John Smith</td>
+          </tr>
+          <tr class="hover:bg-gray-50 cursor-pointer">
+            <td class="px-5 py-4 text-sm font-semibold text-gray-900">Paint Shop Upgrade</td>
+            <td class="px-5 py-4"><span class="badge badge-new">New</span></td>
+            <td class="px-5 py-4 text-sm font-medium text-gray-900">₹2,00,000</td>
+            <td class="px-5 py-4 text-sm text-gray-600">John Smith</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Meetings Tab -->
+  <div id="acc-meetings" class="acc-tab-content hidden">
+    <div class="space-y-3">
+      <div class="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between hover:shadow-sm cursor-pointer">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-blue-50 rounded-lg flex flex-col items-center justify-center text-center">
+            <div class="text-xs font-bold text-blue-600">NOV</div>
+            <div class="text-lg font-bold text-gray-900 leading-none">15</div>
+          </div>
+          <div>
+            <div class="text-sm font-semibold text-gray-900">Commercial Meeting — Vision Inspection</div>
+            <div class="text-xs text-gray-500 mt-1">On-site · Pune · Prepared by John Smith</div>
+          </div>
+        </div>
+        <span class="badge badge-qualified">Commercial</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- =================== MEETINGS SCREEN =================== -->
+<div id="screen-meetings" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Meetings</h1>
+    <button onclick="showScreen('meeting-create')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
+      <span>+</span> New Meeting Report
+    </button>
+  </div>
+  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-5 flex items-center gap-3">
+    <div class="flex-1"><input type="text" placeholder="🔍 Search meetings..." class="w-full h-10 px-4 border border-gray-300 rounded-lg text-sm"></div>
+    <select class="h-10 px-4 border border-gray-300 rounded-lg text-sm text-gray-700"><option>All Types</option><option>Commercial / Industrial</option><option>Defence / Aerospace</option></select>
+    <select class="h-10 px-4 border border-gray-300 rounded-lg text-sm text-gray-700"><option>Last 30 Days</option><option>Last Quarter</option><option>Last Year</option></select>
+  </div>
+  <div class="space-y-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" onclick="showScreen('meeting-detail')">
+      <div class="flex items-start gap-4">
+        <div class="w-16 h-16 bg-blue-50 rounded-lg flex flex-col items-center justify-center flex-shrink-0 text-center">
+          <div class="text-xs font-bold text-blue-600">NOV</div>
+          <div class="text-2xl font-bold text-gray-900 leading-none">15</div>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <h3 class="font-semibold text-gray-900 mb-1">Commercial Meeting — Vision Inspection System</h3>
+              <div class="flex items-center gap-3 text-sm text-gray-500">
+                <span>🏢 TechCorp Industries</span>
+                <span>·</span><span>📍 On-site, Pune</span>
+                <span>·</span><span>John Smith</span>
+              </div>
+            </div>
+            <span class="badge badge-qualified">Commercial</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-3">Client requires automated vision inspection for detecting paint defects on automotive body panels. Current manual inspection causes 15% throughput loss...</p>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>👥 3 Attendees</span><span>·</span><span>✅ 2 Actions</span><span>·</span><span>💰 ₹1,20,000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+      <div class="flex items-start gap-4">
+        <div class="w-16 h-16 bg-purple-50 rounded-lg flex flex-col items-center justify-center flex-shrink-0 text-center">
+          <div class="text-xs font-bold text-purple-600">NOV</div>
+          <div class="text-2xl font-bold text-gray-900 leading-none">10</div>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <h3 class="font-semibold text-gray-900 mb-1">Defence Meeting — Robotic Systems Program</h3>
+              <div class="flex items-center gap-3 text-sm text-gray-500">
+                <span>🏢 AeroDefence Ltd</span>
+                <span>·</span><span>📍 Virtual</span>
+                <span>·</span><span>Jane Doe</span>
+              </div>
+            </div>
+            <span class="badge badge-demo">Defence</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-3">Discussion on robotic systems for defence applications. Make in India compliance required. Budget aligned with Q1 FY27...</p>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>👥 5 Attendees</span><span>·</span><span>✅ 4 Actions</span><span>·</span><span>💰 ₹3,50,000</span><span>·</span><span class="text-purple-600 font-semibold">🔒 Confidential</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+      <div class="flex items-start gap-4">
+        <div class="w-16 h-16 bg-green-50 rounded-lg flex flex-col items-center justify-center flex-shrink-0 text-center">
+          <div class="text-xs font-bold text-green-600">NOV</div>
+          <div class="text-2xl font-bold text-gray-900 leading-none">5</div>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <h3 class="font-semibold text-gray-900 mb-1">Discovery Meeting — Industrial Automation Line</h3>
+              <div class="flex items-center gap-3 text-sm text-gray-500">
+                <span>🏢 ManufCo India</span>
+                <span>·</span><span>📍 On-site, Chennai</span>
+                <span>·</span><span>Mike Patel</span>
+              </div>
+            </div>
+            <span class="badge badge-new">Commercial</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-3">Initial discovery meeting to understand current conveyor system challenges and evaluate automation opportunities in packaging line...</p>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>👥 2 Attendees</span><span>·</span><span>✅ 1 Action</span><span>·</span><span>💰 ₹85,000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- =================== REPORTS SCREEN =================== -->
+<div id="screen-reports" class="screen">
+  <div class="mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900 mb-2">Reports & Analytics</h1>
+    <p class="text-gray-600">Track performance, analyze trends, and export data</p>
+  </div>
+  <div class="grid grid-cols-3 gap-5 mb-6">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+      <div class="text-3xl mb-3">📊</div>
+      <h3 class="text-lg font-semibold mb-1">Pipeline Report</h3>
+      <p class="text-sm opacity-90 mb-4">Detailed pipeline analysis by stage, owner, and time period</p>
+      <button class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50">Generate Report</button>
+    </div>
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+      <div class="text-3xl mb-3">🏆</div>
+      <h3 class="text-lg font-semibold mb-1">Win/Loss Analysis</h3>
+      <p class="text-sm opacity-90 mb-4">Understand why deals were won or lost to improve strategy</p>
+      <button class="bg-white text-green-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-50">Generate Report</button>
+    </div>
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+      <div class="text-3xl mb-3">⏱️</div>
+      <h3 class="text-lg font-semibold mb-1">Activity Report</h3>
+      <p class="text-sm opacity-90 mb-4">Track meetings, action items, and engagement metrics</p>
+      <button class="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-50">Generate Report</button>
+    </div>
+    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+      <div class="text-3xl mb-3">💰</div>
+      <h3 class="text-lg font-semibold mb-1">Revenue Forecast</h3>
+      <p class="text-sm opacity-90 mb-4">Project future revenue based on probability-weighted pipeline</p>
+      <button class="bg-white text-orange-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-50">Generate Report</button>
+    </div>
+    <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+      <div class="text-3xl mb-3">📈</div>
+      <h3 class="text-lg font-semibold mb-1">Lead Conversion</h3>
+      <p class="text-sm opacity-90 mb-4">Analyze conversion rates across pipeline stages</p>
+      <button class="bg-white text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50">Generate Report</button>
+    </div>
+    <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+      <div class="text-3xl mb-3">🎯</div>
+      <h3 class="text-lg font-semibold mb-1">Sales Rep Performance</h3>
+      <p class="text-sm opacity-90 mb-4">Compare team members on key metrics and targets</p>
+      <button class="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50">Generate Report</button>
+    </div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="font-semibold text-gray-900 mb-4">Recent Exports</h2>
+    <div class="space-y-3">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-blue-100 rounded flex items-center justify-center text-blue-600 text-xl">📄</div>
+          <div>
+            <div class="text-sm font-medium text-gray-900">Q4 Pipeline Report</div>
+            <div class="text-xs text-gray-500">Generated Nov 15, 2026 • 247 KB</div>
+          </div>
+        </div>
+        <button class="text-blue-600 hover:underline text-sm">Download</button>
+      </div>
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-green-100 rounded flex items-center justify-center text-green-600 text-xl">📊</div>
+          <div>
+            <div class="text-sm font-medium text-gray-900">Win/Loss Analysis Oct 2026</div>
+            <div class="text-xs text-gray-500">Generated Nov 1, 2026 • 189 KB</div>
+          </div>
+        </div>
+        <button class="text-blue-600 hover:underline text-sm">Download</button>
+      </div>
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-purple-100 rounded flex items-center justify-center text-purple-600 text-xl">📈</div>
+          <div>
+            <div class="text-sm font-medium text-gray-900">Monthly Activity Report</div>
+            <div class="text-xs text-gray-500">Generated Oct 31, 2026 • 412 KB</div>
+          </div>
+        </div>
+        <button class="text-blue-600 hover:underline text-sm">Download</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- =================== MEETING DETAIL SCREEN =================== -->
+<div id="screen-meeting-detail" class="screen">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <button onclick="showScreen('meetings')" class="text-blue-600 hover:underline text-sm mb-2 block">← Back to Meetings</button>
+      <h1 class="text-2xl font-semibold text-gray-900">Commercial Meeting — Vision Inspection System</h1>
+      <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
+        <span>📅 Nov 15, 2026 · 10:30 AM</span>
+        <span>·</span><span>📍 On-site, Pune</span>
+        <span>·</span><span class="badge badge-qualified">Commercial</span>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button class="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">Edit</button>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 flex items-center gap-2">📥 Export PDF</button>
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-5">
+    <div class="col-span-2 space-y-5">
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Meeting Information</h3>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><span class="text-gray-500">Client Company:</span><div class="font-medium text-gray-900 mt-1">TechCorp Industries</div></div>
+          <div><span class="text-gray-500">Industry / Vertical:</span><div class="font-medium text-gray-900 mt-1">Automotive Manufacturing</div></div>
+          <div><span class="text-gray-500">Plant Location:</span><div class="font-medium text-gray-900 mt-1">Pune, Maharashtra</div></div>
+          <div><span class="text-gray-500">Meeting Mode:</span><div class="font-medium text-gray-900 mt-1">On-site Visit</div></div>
+          <div class="col-span-2"><span class="text-gray-500">Meeting Objective:</span><div class="font-medium text-gray-900 mt-1">Discuss requirements for robotic vision inspection system for automotive paint shop defect detection</div></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Attendees (3)</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <div class="w-10 h-10 bg-blue-500 rounded-full text-white text-sm flex items-center justify-center font-semibold">RK</div>
+            <div class="flex-1"><div class="text-sm font-semibold text-gray-900">Rajesh Kumar</div><div class="text-xs text-gray-500">Plant Manager</div></div>
+            <span class="badge" style="background:#FEE2E2;color:#991B1B;">Decision Maker</span>
+          </div>
+          <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <div class="w-10 h-10 bg-purple-500 rounded-full text-white text-sm flex items-center justify-center font-semibold">PS</div>
+            <div class="flex-1"><div class="text-sm font-semibold text-gray-900">Priya Sharma</div><div class="text-xs text-gray-500">Quality Head</div></div>
+            <span class="badge" style="background:#FEF3C7;color:#92400E;">Influencer</span>
+          </div>
+          <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <div class="w-10 h-10 bg-green-500 rounded-full text-white text-sm flex items-center justify-center font-semibold">AV</div>
+            <div class="flex-1"><div class="text-sm font-semibold text-gray-900">Anil Verma</div><div class="text-xs text-gray-500">Operations Lead</div></div>
+            <span class="badge badge-low">User</span>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-3">Requirement / Technical Discussion</h3>
+        <p class="text-sm text-gray-700 leading-relaxed">Client requires automated vision inspection for detecting paint defects on automotive body panels. Current manual inspection causes 15% throughput loss. Key requirements: real-time defect classification, integration with existing conveyor (500mm/sec), &lt;2s cycle time, &gt;98% detection accuracy. Budget range ₹1.2–1.5L confirmed by Rajesh. Q1 FY27 deployment window preferred.</p>
+      </div>
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-3">Competitive Landscape</h3>
+        <div class="bg-gray-50 rounded-lg p-4 text-sm">
+          <div class="flex items-center gap-3 mb-2"><span class="font-semibold text-gray-900">VisionTech Systems</span><span class="badge badge-medium">Competitor</span></div>
+          <p class="text-gray-600 leading-relaxed">Offering standard 2D inspection, slower cycle time (~4s). Pricing ₹90K–₹1.1L. Client felt their demo was underwhelming. Our 3D vision + AI defect classification is perceived as superior. Client leaning towards us if POC validates performance.</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-3">Deal Qualification Notes</h3>
+        <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+          <div class="flex items-center gap-2"><span class="text-green-600 text-lg">✓</span><span class="text-gray-700">Budget Confirmed (₹1.2–1.5L)</span></div>
+          <div class="flex items-center gap-2"><span class="text-green-600 text-lg">✓</span><span class="text-gray-700">Decision Maker Met (Rajesh Kumar)</span></div>
+          <div class="flex items-center gap-2"><span class="text-orange-500 text-lg">⚠</span><span class="text-gray-700">POC Required at Pune plant</span></div>
+          <div class="flex items-center gap-2"><span class="text-orange-500 text-lg">⚠</span><span class="text-gray-700">Internal Approval Pending</span></div>
+        </div>
+        <div class="flex items-center gap-2 text-sm"><span class="text-gray-500">Pipeline Stage:</span><span class="badge badge-qualified ml-2">Qualified</span></div>
+      </div>
+      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-5">
+        <h3 class="font-semibold text-gray-900 mb-3">🔒 Internal Notes</h3>
+        <p class="text-sm text-gray-700 leading-relaxed">Rajesh is under pressure from HQ to cut costs by 20%. He personally favours our solution but needs strong ROI data. Recommend preparing detailed payback calculation showing 6-month ROI. Priya is neutral — focus on quality improvement metrics in proposal.</p>
+      </div>
+    </div>
+    <div class="space-y-5">
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Action Items (2)</h3>
+        <div class="space-y-3">
+          <div class="p-3 border border-red-200 bg-red-50 rounded-lg">
+            <div class="flex items-start gap-2 mb-2"><input type="checkbox" class="mt-0.5"><span class="text-sm font-medium text-gray-900">Send technical proposal with ROI analysis</span></div>
+            <div class="text-xs text-gray-500 flex gap-2"><span>👤 John Smith</span><span>·</span><span class="text-red-600 font-medium">Overdue: Nov 20</span></div>
+          </div>
+          <div class="p-3 border border-gray-200 bg-gray-50 rounded-lg">
+            <div class="flex items-start gap-2 mb-2"><input type="checkbox" class="mt-0.5"><span class="text-sm font-medium text-gray-900">Schedule POC demo at Pune plant</span></div>
+            <div class="text-xs text-gray-500 flex gap-2"><span>👤 Jane Doe</span><span>·</span><span>📅 Nov 25</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-3">🤖 AI Summary</h3>
+        <p class="text-sm text-gray-600 leading-relaxed italic">"Client is strongly qualified with confirmed budget and key decision-maker met. Main obstacle is POC validation. Recommend fast-tracking POC proposal to capture Q1 FY27 budget cycle. Competitive threat from VisionTech is low."</p>
+        <button class="text-xs text-blue-600 hover:underline mt-2">Regenerate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MEETING CREATE SCREEN =================== -->
+<div id="screen-meeting-create" class="screen">
+  <div class="mb-6">
+    <button onclick="showScreen('meetings')" class="text-blue-600 hover:underline text-sm mb-2 block">← Back to Meetings</button>
+    <h1 class="text-2xl font-semibold text-gray-900">New Meeting Report</h1>
+  </div>
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center gap-2"><div class="step-circle active">1</div><div class="text-sm font-medium text-blue-600">Meeting Info</div></div>
+    <div class="step-line"></div>
+    <div class="flex items-center gap-2"><div class="step-circle">2</div><div class="text-sm text-gray-500">Attendees</div></div>
+    <div class="step-line"></div>
+    <div class="flex items-center gap-2"><div class="step-circle">3</div><div class="text-sm text-gray-500">Discussion</div></div>
+    <div class="step-line"></div>
+    <div class="flex items-center gap-2"><div class="step-circle">4</div><div class="text-sm text-gray-500">Actions</div></div>
+  </div>
+  <div class="max-w-3xl">
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <h2 class="font-semibold text-gray-900 mb-5 pb-3 border-b border-gray-100">Meeting Type</h2>
+      <div class="flex gap-4 mb-6">
+        <label class="flex-1 border-2 border-blue-500 rounded-lg p-4 cursor-pointer bg-blue-50">
+          <div class="flex items-center gap-3"><input type="radio" name="mtype" checked class="text-blue-600"><div><div class="font-semibold text-gray-900">Commercial / Industrial</div><div class="text-xs text-gray-500 mt-1">For manufacturing, automotive, industrial automation clients</div></div></div>
+        </label>
+        <label class="flex-1 border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:border-purple-300">
+          <div class="flex items-center gap-3"><input type="radio" name="mtype" class="text-purple-600"><div><div class="font-semibold text-gray-900">Defence / Aerospace</div><div class="text-xs text-gray-500 mt-1">Requires security classification and defence-specific fields</div></div></div>
+        </label>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Lead <span class="text-red-500">*</span></label><select class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"><option>Search or select a lead...</option><option>Automotive Vision System — TechCorp</option><option>Defence Robotics — AeroDefence</option></select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Client Company <span class="text-red-500">*</span></label><input type="text" placeholder="e.g. TechCorp Industries" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Industry / Vertical</label><input type="text" placeholder="e.g. Automotive Manufacturing" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Plant / Facility Location</label><input type="text" placeholder="e.g. Pune, Maharashtra" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Meeting Date <span class="text-red-500">*</span></label><input type="date" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Meeting Time <span class="text-red-500">*</span></label><input type="time" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Location / Mode <span class="text-red-500">*</span></label><select class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"><option>On-site</option><option>Virtual</option><option>Phone</option></select></div>
+        <div class="col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Meeting Objective</label><textarea rows="2" placeholder="Describe the objective of this meeting..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3">
+      <button onclick="showScreen('meetings')" class="border border-gray-300 px-5 py-2.5 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+      <button class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm hover:bg-blue-700">Next: Attendees →</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== LEAD CREATE SCREEN =================== -->
+<div id="screen-lead-create" class="screen">
+  <div class="mb-6">
+    <button onclick="showScreen('leads')" class="text-blue-600 hover:underline text-sm mb-2 block">← Back to Leads</button>
+    <h1 class="text-2xl font-semibold text-gray-900">Create New Lead</h1>
+  </div>
+  <div class="max-w-2xl">
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-5">
+      <h2 class="font-semibold text-gray-900 mb-5 pb-3 border-b border-gray-100">Basic Information</h2>
+      <div class="space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Lead Name <span class="text-red-500">*</span></label><input type="text" placeholder="e.g. Automotive Vision Inspection Project" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Account <span class="text-red-500">*</span></label><select class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"><option>Search account...</option><option>TechCorp Industries</option><option>AeroDefence Ltd</option><option>ManufCo India</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Lead Source</label><select class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"><option>Select source...</option><option>Referral</option><option>Inbound</option><option>Outbound</option><option>Exhibition / Event</option><option>Website</option></select></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Owner <span class="text-red-500">*</span></label><select class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"><option>John Smith</option><option>Jane Doe</option><option>Mike Patel</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Priority</label><div class="flex gap-2 mt-1"><label class="flex items-center gap-2 px-3 py-2 border border-red-300 rounded-lg cursor-pointer bg-red-50 text-sm"><input type="radio" name="priority" class="text-red-500"><span class="text-red-700 font-medium">High</span></label><label class="flex items-center gap-2 px-3 py-2 border border-yellow-300 rounded-lg cursor-pointer bg-yellow-50 text-sm"><input type="radio" name="priority" checked><span class="text-yellow-700 font-medium">Medium</span></label><label class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg cursor-pointer text-sm"><input type="radio" name="priority"><span class="text-gray-700">Low</span></label></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-5">
+      <h2 class="font-semibold text-gray-900 mb-5 pb-3 border-b border-gray-100">Deal Information</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Estimated Value (₹)</label><input type="number" placeholder="0.00" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Expected Close Date</label><input type="date" class="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"></div>
+      </div>
+    </div>
+    <!-- Duplicate warning -->
+    <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-4 mb-5">
+      <div class="flex items-start gap-3">
+        <span class="text-yellow-500 text-xl">⚠️</span>
+        <div class="flex-1">
+          <div class="font-semibold text-yellow-900 mb-2">Potential Duplicate Detected</div>
+          <p class="text-sm text-yellow-800 mb-3">A similar lead already exists in the system. Please review before creating:</p>
+          <div class="bg-white border border-yellow-200 rounded-lg p-3 space-y-2">
+            <div class="flex items-center justify-between text-sm"><span class="font-medium text-gray-900">Automotive Vision System — TechCorp</span><span class="badge badge-qualified">Qualified</span></div>
+            <div class="flex items-center gap-2 text-xs text-gray-500"><span>Owner: John Smith</span><span>·</span><span>Value: ₹1,20,000</span><span>·</span><span class="text-orange-600 font-semibold">94% similarity</span></div>
+            <div class="flex gap-2 mt-2"><button class="text-blue-600 text-xs border border-blue-300 px-3 py-1 rounded hover:bg-blue-50">View Lead</button><button class="text-gray-600 text-xs border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">Continue Creating</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3">
+      <button onclick="showScreen('leads')" class="border border-gray-300 px-5 py-2.5 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+      <button class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm hover:bg-blue-700">Create Lead</button>
+    </div>
+  </div>
+</div>
+
+  </main>
+</div>
+</div>
+
+<script>
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screenId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector(`.nav-item[onclick*="${screenId}"]`)?.classList.add('active');
+}
+
+function toggleNotifications() {
+  const dropdown = document.getElementById('notif-dropdown');
+  dropdown.classList.toggle('hidden');
+}
+
+function switchAccountTab(element, tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  element.classList.add('active');
+  document.querySelectorAll('.acc-tab-content').forEach(c => c.classList.add('hidden'));
+  document.getElementById(tabId).classList.remove('hidden');
+}
+
+function showAccountModal() {
+  alert('Account creation modal would open here');
+}
+
+// Close notification dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('notif-dropdown');
+  if (!e.target.closest('#notif-dropdown') && !e.target.closest('[onclick="toggleNotifications()"]')) {
+    dropdown.classList.add('hidden');
+  }
+});
+</script>
+</body>
+</html>
